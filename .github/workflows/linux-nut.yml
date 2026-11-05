@@ -42,7 +42,7 @@ jobs:
           fi
           if [[ -f test-artifacts/linux-gui.png ]]; then
             mkdir -p "$HOME/ups-preview"
-            cp test-artifacts/linux-gui.png "$HOME/ups-preview/linux-gui.png"
+            cp test-artifacts/linux-gui*.png test-artifacts/linux-settings*.png "$HOME/ups-preview/"
           fi
           exit "$result"
       - name: Remove this job checkout

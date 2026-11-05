@@ -15,9 +15,14 @@ and clears measurements. The GUI uses the same CLI in a background subprocess,
 so network timeouts do not block the window. Failed polls clear old values and
 automatically retry. Closing the window stops its worker.
 
-This first desktop preview is an English standalone window, not a system-tray
-applet. Connection fields are not saved between launches. There is no automatic
-shutdown, UPS control, installer or Linux localization yet. It requires a Linux
+The informer is a standalone window, not a system-tray applet. Connection fields
+are not saved between launches. There is no automatic shutdown, UPS control or
+installer yet. The interface supports English, Ukrainian, German and Russian.
+Use the Language selector in Settings to switch immediately, or launch with
+`python3 linux/ups_menu_bar_gui.py --lang uk` (also `en`, `de`, `ru`). On startup,
+the supported system locale is used, otherwise English. NUT and CLI error details
+remain in the language emitted by those tools. Language selection is not persisted.
+It requires a Linux
 graphical session; a bare server can run it only in a virtual display for testing.
 
 CI's virtual display requires `xvfb`, `xauth`, `python3-tk`, and `python3-pil` for

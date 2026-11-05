@@ -169,6 +169,23 @@ def main():
             gui.connect()
             gui_wait(lambda: gui.status.get() == 'Online')
             from PIL import ImageGrab
+            for language in ['en', 'uk', 'de', 'ru']:
+                gui.apply_language(language)
+                window.update()
+                check('GUI localized state ' + language, gui.status.get() == gui.t('Online') and
+                      gui.info['connection'].get() == gui.t('Connected'))
+                ImageGrab.grab(bbox=(window.winfo_rootx(), window.winfo_rooty(),
+                                   window.winfo_rootx() + window.winfo_width(),
+                                   window.winfo_rooty() + window.winfo_height())).save(report.parent / ('linux-gui-' + language + '.png'))
+                gui.show_settings()
+                window.update()
+                settings = gui.settings_window
+                check('GUI localized settings ' + language, settings.title() == gui.t('UPS Menu Bar Settings'))
+                ImageGrab.grab(bbox=(settings.winfo_rootx(), settings.winfo_rooty(),
+                                   settings.winfo_rootx() + settings.winfo_width(),
+                                   settings.winfo_rooty() + settings.winfo_height())).save(report.parent / ('linux-settings-' + language + '.png'))
+                settings.destroy()
+            gui.apply_language('en')
             window.update()
             screenshot = report.parent / 'linux-gui.png'
             ImageGrab.grab(bbox=(window.winfo_rootx(), window.winfo_rooty(),
