@@ -1,0 +1,48 @@
+name: Linux NUT integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ci/**'
+      - '.github/workflows/linux-nut.yml'
+permissions:
+  contents: read
+concurrency:
+  group: linux-nut-parserdev
+  cancel-in-progress: false
+jobs:
+  nut:
+    if: github.repository == 'Kokarev/ups-menu-bar' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: [self-hosted, Linux, X64, ups-nut-ci]
+    timeout-minutes: 5
+    steps:
+      - name: Fetch exact trusted main commit without stored credentials
+        shell: bash
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          echo "NUT_CHECKOUT=$work" >> "$GITHUB_ENV"
+          git -C "$work" init -q
+          git -C "$work" fetch --depth=1 https://github.com/Kokarev/ups-menu-bar.git "$COMMIT_SHA"
+          git -C "$work" checkout -q --detach FETCH_HEAD
+      - name: Exercise real dummy UPS, server and client
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NUT_CHECKOUT"
+          result=0
+          python3 ci/nut_smoke.py || result=$?
+          if [[ -f test-artifacts/nut-report.json ]]; then
+            cat test-artifacts/nut-report.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$result"
+      - name: Remove this job checkout
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${NUT_CHECKOUT:-}" && "$NUT_CHECKOUT" == /tmp/tmp.* ]]; then
+            rm -rf -- "$NUT_CHECKOUT"
+          fi
