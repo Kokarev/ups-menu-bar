@@ -203,7 +203,7 @@ def main():
                     print(name + ':\n' + log.read()[-6000:])
                 log.close()
             report.write_text(json.dumps({'passed': error is None, 'checks': checks, 'error': error,
-                                          'scope': 'Real NUT and Linux CLI integration; no Linux GUI or macOS app tests.'}, indent=2) + '\n')
+                                          'scope': 'Real NUT and Linux CLI/Tk GUI integration; no physical hardware or macOS app tests.'}, indent=2) + '\n')
     print('NUT CI PASS:', len(checks), 'checks')
 
 

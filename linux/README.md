@@ -62,7 +62,7 @@ interval. It is an estimate of UPS output energy, not a wall energy meter.
 CSV has the same eight columns as macOS history, but must use a separate file.
 Existing headers are validated; a nonblocking advisory lock prevents two copies
 of this prototype writing the same file. Historical intervals are not backfilled
-across restarts. No outage event log, daily/monthly totals or GUI is included yet.
+across restarts. No outage event log or daily/monthly totals are included yet.
 
 Host accepts IPv4 addresses/DNS; IPv6 and authenticated/TLS NUT are not supported
 by this prototype. Use a trusted local network or an existing secure tunnel;
