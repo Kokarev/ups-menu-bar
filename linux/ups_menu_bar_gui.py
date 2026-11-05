@@ -74,7 +74,6 @@ class MonitorWindow:
             ttk.Label(table, textvariable=value, style='Value.TLabel').grid(row=row, column=1, sticky='e', pady=1)
         self.detail = tk.StringVar(value='Enter your NUT server and UPS name to begin.')
         ttk.Label(body, textvariable=self.detail, wraplength=670).pack(anchor='w', pady=(12, 0))
-        ttk.Label(body, text='Power and energy are estimates. Missing values are shown as —.').pack(anchor='w', pady=(8, 0))
         root.protocol('WM_DELETE_WINDOW', self.close)
         self.timer = root.after(100, self.drain)
 
