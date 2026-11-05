@@ -1,14 +1,17 @@
 # Linux NUT test environment
 
-This is CI infrastructure for the future Linux port, **not a Linux build of UPS Menu Bar**.
-The GUI still depends on AppKit. No Linux GUI, Swift portability, actual UPS hardware,
-shutdown policy or production NUT service is validated here.
+This tests the Python Linux console prototype in `linux/` and its NUT transport.
+It is **not a build of the macOS Swift app**. The GUI still depends on AppKit.
+No Linux GUI, Swift portability, actual UPS hardware, shutdown policy or production
+NUT service is validated here.
 
 `python3 ci/nut_smoke.py` runs real packaged `dummy-ups`, `upsd`, and `upsc` as the
 current non-root user. Install `nut-server`, `nut-client`, and Python 3 first.
 It uses temporary configs, loopback port 3493, no USB device and no control user.
 It checks OL/OB/LB, voltage/load, absent versus zero battery values, a timed
-OB-to-OL transition, unknown UPS, disconnected server and reconnection. All its
+OB-to-OL transition, unknown UPS, disconnected server and reconnection. It also
+runs the actual Linux CLI, checks JSON output and CSV, and observes its recovery
+after a live server restart without integrating energy across the gap. All its
 processes stop on completion; `test-artifacts/nut-report.json` records results.
 An existing server on port 3493 is an error; never stop it to run this test.
 
@@ -20,7 +23,7 @@ the official GitHub runner image. One job at a time. Container limits: 1 CPU,
 host credentials or extra Linux capabilities. Only its own Docker-managed home
 volume persists. Docker logs rotate (3 x 10 MiB). No changes to parser services.
 
-Only trusted `main` pushes affecting CI and manual runs from `main` are enabled.
+Only trusted `main` pushes affecting CI or the Linux prototype and manual runs from `main` are enabled.
 There are deliberately no pull_request, pull_request_target, issue-comment or
 workflow_run triggers. Never run fork/PR code on ParserDev. This is not a VM
 security boundary; anyone allowed to change trusted workflows must be trusted

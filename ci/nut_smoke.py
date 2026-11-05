@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import shutil
 import socket
+import select
 import subprocess
 import tempfile
 import time
@@ -97,15 +98,46 @@ def main():
             zero = await_values('zero', lambda d: d.get('ups.status') == 'OL')
             check('real zero is not missing', all(float(zero[k]) == 0 for k in ['ups.load', 'battery.charge', 'battery.runtime']))
             check('unknown UPS fails explicitly', query('not-configured').returncode != 0)
+            cli = Path(__file__).resolve().parents[1] / 'linux' / 'ups_menu_bar.py'
+            history = root / 'cli-history.csv'
+            for name in ['online', 'battery', 'low', 'zero']:
+                result = subprocess.run(['python3', str(cli), '--ups', name, '--once'],
+                                        capture_output=True, text=True, timeout=10)
+                check('CLI real NUT ' + name, result.returncode == 0 and json.loads(result.stdout)['connected'])
+            cli_process = subprocess.Popen(['python3', str(cli), '--ups', 'online', '--interval', '.3',
+                                            '--rated-watts', '400', '--csv', str(history)],
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            processes.append(cli_process)
+
+            def cli_event(connected, seconds=15):
+                deadline = time.monotonic() + seconds
+                while time.monotonic() < deadline:
+                    if select.select([cli_process.stdout], [], [], .5)[0]:
+                        line = cli_process.stdout.readline()
+                        if not line:
+                            raise AssertionError('CLI exited unexpectedly')
+                        event = json.loads(line)
+                        if event['connected'] is connected:
+                            return event
+                raise AssertionError('CLI did not report connected=' + str(connected))
+
+            first = cli_event(True)
+            check('CLI first sample has no invented interval', first['delta_Wh'] is None and first['estimated_W'] == 12)
             await_values('cycle', lambda d: d.get('ups.status') == 'OB', seconds=20)
             await_values('cycle', lambda d: d.get('ups.status') == 'OL', seconds=20)
             check('mains returns after battery state', True)
             server.terminate()
             server.wait(timeout=5)
             check('connection loss fails explicitly', query('online').returncode != 0)
+            cli_event(False)
+            check('CLI reports connection loss', True)
             start([upsd, '-F', '-u', username], 'upsd-restarted')
             await_values('online', lambda d: d.get('ups.status') == 'OL')
             check('connection recovers after server restart', True)
+            recovered = cli_event(True)
+            check('CLI recovers without integrating across gap', recovered['delta_Wh'] is None)
+            check('CLI writes CSV with compatible header', history.read_text().splitlines()[0].strip() ==
+                  'timestamp,status,input_V,output_V,load_percent,estimated_W,delta_Wh,battery_V')
         except Exception as exc:
             error = str(exc)
             raise
@@ -124,7 +156,7 @@ def main():
                     print(name + ':\n' + log.read()[-6000:])
                 log.close()
             report.write_text(json.dumps({'passed': error is None, 'checks': checks, 'error': error,
-                                          'scope': 'Real NUT transport smoke test; no Linux GUI or macOS app tests.'}, indent=2) + '\n')
+                                          'scope': 'Real NUT and Linux CLI integration; no Linux GUI or macOS app tests.'}, indent=2) + '\n')
     print('NUT CI PASS:', len(checks), 'checks')
 
 

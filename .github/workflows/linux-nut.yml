@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'ci/**'
+      - 'linux/**'
       - '.github/workflows/linux-nut.yml'
 permissions:
   contents: read
@@ -34,6 +35,7 @@ jobs:
           set -euo pipefail
           cd "$NUT_CHECKOUT"
           result=0
+          python3 -m unittest discover -s linux -p 'test_*.py'
           python3 ci/nut_smoke.py || result=$?
           if [[ -f test-artifacts/nut-report.json ]]; then
             cat test-artifacts/nut-report.json >> "$GITHUB_STEP_SUMMARY"
