@@ -55,7 +55,8 @@ def parse_reading(raw):
               'output_V': number('output.voltage'), 'load_percent': number('ups.load', True),
               'battery_V': number('battery.voltage'), 'battery_charge_percent': number('battery.charge'),
               'battery_runtime_s': number('battery.runtime'), 'temperature_C': number('ups.temperature'),
-              'frequency_Hz': number('input.frequency')}
+              'frequency_Hz': number('input.frequency'),
+              'driver_state': data.get('driver.state') if isinstance(data.get('driver.state'), str) else None}
     if not 0 <= result['load_percent'] <= 100:
         raise ValueError('ups.load must be between 0 and 100')
     return result

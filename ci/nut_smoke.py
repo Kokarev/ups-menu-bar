@@ -151,6 +151,12 @@ def main():
             gui_wait(lambda: gui.status.get() == 'Online')
             check('GUI displays actual NUT telemetry', gui.values['input_V'].get() == '227.2 V' and gui.values['estimated_W'].get() == '12 W')
             check('GUI missing runtime is not zero', gui.values['battery_runtime_s'].get() == '—')
+            check('informer summary and diagnostics agree', '227.2 V' in gui.summary.get() and
+                  gui.info['raw_status'].get() == 'OL' and gui.info['connection'].get() == 'Connected')
+            gui.show_settings()
+            window.update()
+            check('settings are a separate window', gui.settings_window.winfo_exists() == 1)
+            gui.settings_window.destroy()
             gui.settings['ups'].set('not-configured')
             gui.connect()
             gui_wait(lambda: gui.status.get() == 'No current data')
@@ -165,7 +171,9 @@ def main():
             from PIL import ImageGrab
             window.update()
             screenshot = report.parent / 'linux-gui.png'
-            ImageGrab.grab().save(screenshot)
+            ImageGrab.grab(bbox=(window.winfo_rootx(), window.winfo_rooty(),
+                               window.winfo_rootx() + window.winfo_width(),
+                               window.winfo_rooty() + window.winfo_height())).save(screenshot)
             await_values('cycle', lambda d: d.get('ups.status') == 'OB', seconds=20)
             await_values('cycle', lambda d: d.get('ups.status') == 'OL', seconds=20)
             check('mains returns after battery state', True)
@@ -174,6 +182,7 @@ def main():
             check('connection loss fails explicitly', query('online').returncode != 0)
             gui_wait(lambda: gui.status.get() == 'No current data')
             check('GUI clears stale values on disconnect', all(v.get() == '—' for v in gui.values.values()))
+            check('informer clears diagnostic status on loss', gui.info['connection'].get() == 'Disconnected' and gui.info['raw_status'].get() == '—')
             cli_event(False)
             check('CLI reports connection loss', True)
             start([upsd, '-F', '-u', username], 'upsd-restarted')
