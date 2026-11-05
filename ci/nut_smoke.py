@@ -15,7 +15,11 @@ import time
 def main():
     # Refuse to overlap an existing NUT service; never signal foreign processes.
     with socket.socket() as probe:
+        # A previous completed run can leave TCP connections in TIME_WAIT.
+        # This permits those sockets, but still rejects a live listener.
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         probe.bind(('127.0.0.1', 3493))
+        probe.listen(1)
     checks = []
     processes = []
     logs = []
