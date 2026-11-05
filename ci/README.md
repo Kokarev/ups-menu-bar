@@ -2,10 +2,10 @@
 
 This tests the Python Linux console prototype in `linux/` and its NUT transport.
 It is **not a build of the macOS Swift app**. The GUI still depends on AppKit.
-No Linux GUI, Swift portability, actual UPS hardware, shutdown policy or production
-NUT service is validated here.
+The Python Tk desktop preview is tested using Xvfb. Swift portability, actual
+UPS hardware, shutdown policy and production NUT services are not validated.
 
-`python3 ci/nut_smoke.py` runs real packaged `dummy-ups`, `upsd`, and `upsc` as the
+`xvfb-run -a python3 ci/nut_smoke.py` runs the GUI and real packaged `dummy-ups`, `upsd`, and `upsc` as the
 current non-root user. Install `nut-server`, `nut-client`, and Python 3 first.
 It uses temporary configs, loopback port 3493, no USB device and no control user.
 It checks OL/OB/LB, voltage/load, absent versus zero battery values, a timed
@@ -31,10 +31,13 @@ with the runner. No repository secrets are needed. The job token is read-only
 and checkout does not store credentials. Review future workflow changes for
 these restrictions. Do not add privileged mode or mount the Docker socket.
 
-Container name: `ups-menu-bar-ci-runner`; image: `ups-menu-bar-ci:2.338.2`;
+Container name: `ups-menu-bar-ci-runner`; image: `ups-menu-bar-ci:2.338.2-gui`;
 volume: `ups-menu-bar-ci-home`. Runner updates are disabled inside jobs: rebuild
 with a supported official runner image and recreate the container deliberately
 before GitHub's runner version expiry. Docker restart policy is unless-stopped.
+The latest GUI screenshot is overwritten at `/home/runner/ups-preview/linux-gui.png`
+inside this container; no GitHub artifact or cache storage is used. The container
+uses Docker's `--init` to reap children and handle virtual-display signals.
 
 Read status: `docker logs --tail 30 ups-menu-bar-ci-runner` and GitHub Settings →
 Actions → Runners. Stop only this runner: `docker stop ups-menu-bar-ci-runner`.

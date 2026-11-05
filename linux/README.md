@@ -1,4 +1,31 @@
-# Linux console prototype
+# Linux desktop and console prototypes
+
+## Desktop window
+
+Install Python Tk support (`python3-tk` on Debian/Ubuntu) and `nut-client`, then:
+
+```sh
+python3 linux/ups_menu_bar_gui.py
+```
+
+Enter the server, port and UPS name; optional rated output watts enable the
+power estimate. Choose a separate CSV file if logging is needed. Click
+**Connect / Apply** to start or apply changes; **Disconnect** stops the worker
+and clears measurements. The GUI uses the same CLI in a background subprocess,
+so network timeouts do not block the window. Failed polls clear old values and
+automatically retry. Closing the window stops its worker.
+
+This first desktop preview is an English standalone window, not a system-tray
+applet. Connection fields are not saved between launches. There is no automatic
+shutdown, UPS control, installer or Linux localization yet. It requires a Linux
+graphical session; a bare server can run it only in a virtual display for testing.
+
+CI's virtual display requires `xvfb`, `xauth`, `python3-tk`, and `python3-pil` for
+the screenshot. It tests actual GUI telemetry, absent values, target changes,
+connection loss, recovery and explicit disconnect. The screenshot is an
+illustration of real dummy-UPS telemetry, not physical hardware validation.
+
+## Console
 
 Experimental read-only client, not a graphical Linux release. Python 3.9+ and
 NUT's `upsc` are required (`nut-client` on Debian/Ubuntu). No Python packages,

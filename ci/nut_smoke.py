@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import socket
 import select
+import sys
 import subprocess
 import tempfile
 import time
@@ -18,6 +19,7 @@ def main():
     checks = []
     processes = []
     logs = []
+    gui = None
     report = Path(os.environ.get('NUT_CI_REPORT', 'test-artifacts/nut-report.json'))
     report.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ups-menu-bar-nut-') as temporary:
@@ -123,17 +125,60 @@ def main():
 
             first = cli_event(True)
             check('CLI first sample has no invented interval', first['delta_Wh'] is None and first['estimated_W'] == 12)
+            import tkinter as tk
+            sys.path.insert(0, str(cli.parent))
+            from ups_menu_bar_gui import MonitorWindow
+            window = tk.Tk()
+            gui = MonitorWindow(window)
+            gui.settings['ups'].set('online')
+            gui.settings['rated'].set('400')
+            gui.csv_path.set(str(root / 'gui-history.csv'))
+            gui.connect()
+
+            def gui_wait(predicate, seconds=15):
+                deadline = time.monotonic() + seconds
+                while time.monotonic() < deadline:
+                    window.update()
+                    if predicate():
+                        return
+                    time.sleep(.05)
+                raise AssertionError('GUI did not reach expected state: ' + gui.status.get())
+
+            gui_wait(lambda: gui.status.get() == 'Online')
+            check('GUI displays actual NUT telemetry', gui.values['input_V'].get() == '227.2 V' and gui.values['estimated_W'].get() == '12 W')
+            check('GUI missing runtime is not zero', gui.values['battery_runtime_s'].get() == '—')
+            gui.settings['ups'].set('not-configured')
+            gui.connect()
+            gui_wait(lambda: gui.status.get() == 'No current data')
+            check('GUI exposes unknown UPS error', bool(gui.detail.get()))
+            gui.settings['ups'].set('battery')
+            gui.connect()
+            gui_wait(lambda: gui.status.get() == 'On battery')
+            check('GUI applies a new target', gui.values['battery_charge_percent'].get() == '75 %')
+            gui.settings['ups'].set('online')
+            gui.connect()
+            gui_wait(lambda: gui.status.get() == 'Online')
+            from PIL import ImageGrab
+            window.update()
+            screenshot = report.parent / 'linux-gui.png'
+            ImageGrab.grab().save(screenshot)
             await_values('cycle', lambda d: d.get('ups.status') == 'OB', seconds=20)
             await_values('cycle', lambda d: d.get('ups.status') == 'OL', seconds=20)
             check('mains returns after battery state', True)
             server.terminate()
             server.wait(timeout=5)
             check('connection loss fails explicitly', query('online').returncode != 0)
+            gui_wait(lambda: gui.status.get() == 'No current data')
+            check('GUI clears stale values on disconnect', all(v.get() == '—' for v in gui.values.values()))
             cli_event(False)
             check('CLI reports connection loss', True)
             start([upsd, '-F', '-u', username], 'upsd-restarted')
             await_values('online', lambda d: d.get('ups.status') == 'OL')
             check('connection recovers after server restart', True)
+            gui_wait(lambda: gui.status.get() == 'Online')
+            check('GUI recovers without freezing', gui.values['input_V'].get() == '227.2 V')
+            gui.disconnect()
+            check('GUI explicit disconnect clears values', gui.status.get() == 'Disconnected' and all(v.get() == '—' for v in gui.values.values()))
             recovered = cli_event(True)
             check('CLI recovers without integrating across gap', recovered['delta_Wh'] is None)
             check('CLI writes CSV with compatible header', history.read_text().splitlines()[0].strip() ==
@@ -142,6 +187,8 @@ def main():
             error = str(exc)
             raise
         finally:
+            if gui:
+                gui.close()
             for process in reversed(processes):
                 if process.poll() is None:
                     process.terminate()

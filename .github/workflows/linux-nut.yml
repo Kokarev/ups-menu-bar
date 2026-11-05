@@ -36,9 +36,13 @@ jobs:
           cd "$NUT_CHECKOUT"
           result=0
           python3 -m unittest discover -s linux -p 'test_*.py'
-          python3 ci/nut_smoke.py || result=$?
+          xvfb-run -a python3 ci/nut_smoke.py || result=$?
           if [[ -f test-artifacts/nut-report.json ]]; then
             cat test-artifacts/nut-report.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ -f test-artifacts/linux-gui.png ]]; then
+            mkdir -p "$HOME/ups-preview"
+            cp test-artifacts/linux-gui.png "$HOME/ups-preview/linux-gui.png"
           fi
           exit "$result"
       - name: Remove this job checkout
